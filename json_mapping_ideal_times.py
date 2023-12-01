@@ -33,8 +33,8 @@ The `IdealTime` class focuses on calculating and storing ideal travel times base
 '''
 
 import json
-import matplotlib.pyplot as plt
 import math
+import matplotlib.pyplot as plt
 
 class JsonDataMap:
     def __init__(self):
@@ -45,7 +45,6 @@ class JsonDataMap:
         self.datum = None
 
     def extract_rows(self, json_data):
-
         x = [point['head']['position']['x'] + json_data['datum']['longitude'] for point in json_data['points']]
         y = [point['head']['position']['y'] + json_data['datum']['latitude'] for point in json_data['points']]
 
@@ -65,7 +64,6 @@ class JsonDataMap:
         return {'x': rows_x, 'y': rows_y}
     
     def extract_turns(self, json_data):
-
         x = [point['head']['position']['x'] + json_data['datum']['longitude'] for point in json_data['points']]
         y = [point['head']['position']['y'] + json_data['datum']['latitude'] for point in json_data['points']]
 
@@ -88,7 +86,6 @@ class JsonDataMap:
         return {'x': turns_x, 'y': turns_y}
 
     def extract_start_path(self, json_data):
-
         x = [point['head']['position']['x'] + json_data['datum']['longitude'] for point in json_data['points']]
         y = [point['head']['position']['y'] + json_data['datum']['latitude'] for point in json_data['points']]
 
@@ -102,7 +99,6 @@ class JsonDataMap:
         return {'x': start_path_x, 'y': start_path_y}
 
     def extract_end_path(self, json_data):
-
         x = [point['head']['position']['x'] + json_data['datum']['longitude'] for point in json_data['points']]
         y = [point['head']['position']['y'] + json_data['datum']['latitude'] for point in json_data['points']]
 
@@ -117,16 +113,13 @@ class JsonDataMap:
         end_path_y = y[last_treatment_area_index:]
 
         return {'x': end_path_x, 'y': end_path_y}
-    
 
     def extract_datum(self, json):
         x = json['datum']['longitude']
         y = json['datum']['latitude']
         return {'x': x, 'y': y}
-    
 
     def plot_data(self):
-
         #rows
         plt.scatter(self.rows['x'], 
                     self.rows['y'], 
@@ -134,27 +127,26 @@ class JsonDataMap:
                     label='Rows', 
                     s=10)
         
-         #turns
+        #turns
         plt.scatter(self.turns['x'], 
                     self.turns['y'], 
                     color='lightsteelblue', 
                     label='Turns', 
                     s=10)
         
-         #start path
+        #start path
         plt.scatter(self.start_path['x'], 
                     self.start_path['y'], 
                     color='steelblue', 
                     label='Start Path', 
                     s=10)
         
-         #end path
+        #end path
         plt.scatter(self.end_path['x'], 
                     self.end_path['y'], 
                     color='tomato', 
                     label='End Path', 
                     s=10)
-        
 
         # Plotting the datum
         plt.scatter(self.datum['x'], 
@@ -163,8 +155,9 @@ class JsonDataMap:
                     marker='x', 
                     label='Home')
 
-        
-         # Adding labels
+        # Adding labels
+       
+
         plt.xlabel('X Label')
         plt.ylabel('Y Label')
 
@@ -179,6 +172,7 @@ class IdealTime:
     def __init__(self, json_data, speed):
         self.json_data = json_data
         self.speed = speed
+        self.ideal_travel_times = []  # Add a list to store ideal travel times
 
     def calculate_distance(self, point1, point2):
         x1, y1, z1 = point1['head']['position']['x'], point1['head']['position']['y'], point1['head']['position']['z']
@@ -186,7 +180,7 @@ class IdealTime:
         distance = math.sqrt((x2 - x1)**2 + (y2 - y1)**2 + (z2 - z1)**2)
         return distance
 
-    def calculate_and_print_distances(self):
+    def calculate_and_store_travel_times(self):
         # Extracting relevant information
         points = self.json_data['points']
         rows = []
@@ -215,44 +209,7 @@ class IdealTime:
                 if len(current_row) > 1:
                     rows.append(current_row)
 
-        # Calculate distance for each row
-        for i, row in enumerate(rows):
-            total_distance = 0
-            for j in range(len(row) - 1):
-                distance = self.calculate_distance(row[j], row[j + 1])
-                total_distance += distance
-            #print(f"Row {i + 1}: Distance = {total_distance}")
-
-    def calculate_and_print_travel_times(self):
-        # Extracting relevant information
-        points = self.json_data['points']
-        rows = []
-
-        # Flag to indicate if a row is currently being processed
-        in_row = False
-
-        # Temporary storage for the current row
-        current_row = []
-
-        # Iterate through points
-        for point in points:
-            if point['treatment_area']:
-                # Treatment area is true
-                if not in_row:
-                    # Start of a new row
-                    in_row = True
-                    current_row = [point]
-                else:
-                    # Continue adding points to the current row
-                    current_row.append(point)
-            elif in_row:
-                # Treatment area is false, and we were in a row
-                in_row = False
-                # Check if the row has more than one point (turn)
-                if len(current_row) > 1:
-                    rows.append(current_row)
-
-        # Calculate and print travel time for each row
+        # Calculate and store travel time for each row
         for i, row in enumerate(rows):
             total_distance = 0
             for j in range(len(row) - 1):
@@ -260,8 +217,15 @@ class IdealTime:
                 total_distance += distance
 
             travel_time_seconds = total_distance / self.speed
-            travel_time_minutes = travel_time_seconds / 60
+            travel_time_minutes = travel_time_seconds / 60  # Convert seconds to minutes
+
+            # Store the calculated travel time
+            self.ideal_travel_times.append(travel_time_minutes)
+
             print(f"Row {i + 1}: Ideal Travel Time = {travel_time_minutes:.2f} minutes")
+
+    def get_ideal_travel_times(self):
+        return self.ideal_travel_times
 
 def main():
     # Load JSON data
@@ -287,11 +251,12 @@ def main():
     # Plot the data
     plot_data.plot_data()
 
-    # Calculate and print distances
-    ideal_time.calculate_and_print_distances()
+    # Calculate, print, and store ideal travel times
+    ideal_time.calculate_and_store_travel_times()
 
-    # Calculate and print ideal travel times
-    ideal_time.calculate_and_print_travel_times()
+    # Access the stored ideal travel times for future use
+    stored_ideal_times = ideal_time.get_ideal_travel_times()
+    print("Stored Ideal Travel Times:", stored_ideal_times)
 
 if __name__ == "__main__":
     main()

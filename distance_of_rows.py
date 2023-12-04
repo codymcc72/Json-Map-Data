@@ -1,8 +1,14 @@
-#!/Library/Frameworks/Python.framework/Versions/3.12/bin/python3
-
 import json
-import matplotlib.pyplot as plt
+import math
 
+# Function to calculate Euclidean distance between two points
+def calculate_distance(point1, point2):
+    x1, y1, z1 = point1['head']['position']['x'], point1['head']['position']['y'], point1['head']['position']['z']
+    x2, y2, z2 = point2['head']['position']['x'], point2['head']['position']['y'], point2['head']['position']['z']
+    distance = math.sqrt((x2 - x1)**2 + (y2 - y1)**2 + (z2 - z1)**2)
+    return distance
+
+# Function to load JSON data
 def load_json(file_path):
     with open(file_path, 'r') as file:
         data = json.load(file)
@@ -10,31 +16,41 @@ def load_json(file_path):
 
 json_data = load_json('appended.json')
 
-# Extracting x and y coordinates from the JSON data
-x = [point['head']['position']['x'] for point in json_data['points']]
-y = [point['head']['position']['y'] for point in json_data['points']]
-treatment_areas = [point['treatment_area'] for point in json_data['points']]
+# Extracting relevant information
+points = json_data['points']
+rows = []
 
-# Identify the start and end path indices
-start_path_index = treatment_areas.index(False)
-end_path_index = len(treatment_areas) - 1 - treatment_areas[::-1].index(False)
+# Flag to indicate if a row is currently being processed
+in_row = False
 
-# Plotting the rows in blue
-plt.scatter(x[:start_path_index], y[:start_path_index], marker='o', color='blue', label='Row Points')
+# Temporary storage for the current row
+current_row = []
 
-# Plotting the start path points in green
-plt.scatter(x[start_path_index:end_path_index + 1], y[start_path_index:end_path_index + 1], marker='o', color='green', label='Start Path Points')
+# Iterate through points
+for point in points:
+    if point['treatment_area']:
+        # Treatment area is true
+        if not in_row:
+            # Start of a new row
+            in_row = True
+            current_row = [point]
+        else:
+            # Continue adding points to the current row
+            current_row.append(point)
+    elif in_row:
+        # Treatment area is false, and we were in a row
+        in_row = False
+        # Check if the row has more than one point (turn)
+        if len(current_row) > 1:
+            rows.append(current_row)
 
-# Plotting the turns in orange
-plt.scatter(x[end_path_index + 1:], y[end_path_index + 1:], marker='o', color='orange', label='Turn Points')
+# Now 'rows' contains a list of rows with treatment areas
+# Each row is a list of points from a treatment area to the next
 
-# Plotting the end path points in red
-plt.scatter(x[end_path_index + 1:], y[end_path_index + 1:], marker='o', color='red', label='End Path Points')
-
-# Adding labels
-plt.xlabel('X Label')
-plt.ylabel('Y Label')
-
-# Show the plot
-plt.legend()
-plt.show()
+# Calculate distance for each row
+for i, row in enumerate(rows):
+    total_distance = 0
+    for j in range(len(row) - 1):
+        distance = calculate_distance(row[j], row[j + 1])
+        total_distance += distance
+    print(f"Row {i + 1}: Distance = {total_distance}")

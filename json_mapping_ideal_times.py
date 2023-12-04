@@ -1,30 +1,25 @@
-#!/Library/Frameworks/Python.framework/Versions/3.12/bin/python3
-
 '''
 
 JsonDataMap Class:
 
-The JsonDataMap class is responsible for extracting relevant information from the JSON data and visualizing it using the Matplotlib library. 
+The JsonDataMap class ectracts relevant information from the JSON data and visualizing it using the Matplotlib library. 
 
 1. Data Extraction:
    - The class has methods to extract rows, turns, start paths, end paths, and the datum from the given JSON data. These methods adjust the coordinates of the points based on the map's datum.
    - Rows represent treatment areas, and the extracted data includes x and y coordinates.
 
 2. Plotting Data:
-   - The `plot_data` method utilizes Matplotlib to create a scatter plot of the extracted data. Different colors are used for rows, turns, start paths, end paths, and the datum.
+   - The `plot_data` method uses Matplotlib to create a scatter plot of the extracted data. Different colors are used for rows, turns, start paths, end paths, and the datum.
    - Labels, legend, and axes information are added to enhance the clarity of the plot.
 
 IdealTime Class:
 
 The `IdealTime` class focuses on calculating and storing ideal travel times based on the extracted rows. Here's a detailed explanation of its functionalities:
 
-1. Initialization:
-   - The class is initialized with JSON data and a speed parameter, representing the speed of travel in meters per second.
-
-2. Distance Calculation:
+1. Distance Calculation:
    - The `calculate_distance` method calculates the Euclidean distance between two points. This is used to determine the total distance traveled in each row.
 
-3. Travel Time Calculation:
+2. Travel Time Calculation:
    - The `calculate_and_store_travel_times` method processes the rows from the JSON data and calculates the total distance traveled in each row.
    - The total distance is then divided by the specified speed to obtain the travel time in seconds.
    - The calculated travel times are stored in the `self.ideal_travel_times` list.
@@ -172,7 +167,8 @@ class IdealTime:
     def __init__(self, json_data, speed):
         self.json_data = json_data
         self.speed = speed
-        self.ideal_travel_times = []  # Add a list to store ideal travel times
+        self.ideal_travel_times = []  # List to store ideal travel times
+        self.total_distance_rows = 0  # Variable to store the total distance of all rows
 
     def calculate_distance(self, point1, point2):
         x1, y1, z1 = point1['head']['position']['x'], point1['head']['position']['y'], point1['head']['position']['z']
@@ -208,38 +204,33 @@ class IdealTime:
                 # Check if the row has more than one point (turn)
                 if len(current_row) > 1:
                     rows.append(current_row)
+                    # Accumulate the total distance of the row
+                    total_distance_row = sum(self.calculate_distance(current_row[j], current_row[j + 1]) for j in range(len(current_row) - 1))
+                    self.total_distance_rows += total_distance_row
 
         # Calculate and store travel time for each row
         for i, row in enumerate(rows):
-            total_distance = 0
-            for j in range(len(row) - 1):
-                distance = self.calculate_distance(row[j], row[j + 1])
-                total_distance += distance
+            total_distance = sum(self.calculate_distance(row[j], row[j + 1]) for j in range(len(row) - 1))
+            travel_time_seconds = total_distance / self.speed/60  # Travel time in seconds/60 to make minutes
+            rounded_travel_time_minutes = round(travel_time_seconds, 1)  # Round to 1 decimal place
+            self.ideal_travel_times.append(rounded_travel_time_minutes)
 
-            travel_time_seconds = total_distance / self.speed
-            travel_time_minutes = travel_time_seconds / 60  # Convert seconds to minutes
+            # print(f"Row {i + 1}: Ideal Travel Time = {travel_time_minutes:.2f} minutes")
 
-            # Store the calculated travel time
-            self.ideal_travel_times.append(travel_time_minutes)
-
-            print(f"Row {i + 1}: Ideal Travel Time = {travel_time_minutes:.2f} minutes")
+    def get_total_distance_rows(self):
+        return self.total_distance_rows
 
     def get_ideal_travel_times(self):
         return self.ideal_travel_times
 
-def main():
-    # Load JSON data
-    with open('appended.json', 'r') as file:
-        json_data = json.load(file)
 
-    # Set the speed for the ideal time calculation (in meters per second)
-    speed = 0.23  # Adjust this value as needed
+def load_json_data(file_name):
+    with open(file_name, 'r') as file:
+        return json.load(file)
 
-    # Create an instance of the JsonDataMap class
+def process_and_plot_data(json_data, speed_treatment, speed_non_treatment):
     plot_data = JsonDataMap()
-
-    # Create an instance of the IdealTime class with the specified speed
-    ideal_time = IdealTime(json_data, speed)
+    ideal_time = IdealTime(json_data, speed_treatment)
 
     # Extract and store data
     plot_data.rows = plot_data.extract_rows(json_data)
@@ -251,12 +242,44 @@ def main():
     # Plot the data
     plot_data.plot_data()
 
-    # Calculate, print, and store ideal travel times
+    # Calculate, print, and store ideal travel times for treatment areas
     ideal_time.calculate_and_store_travel_times()
 
     # Access the stored ideal travel times for future use
-    stored_ideal_times = ideal_time.get_ideal_travel_times()
-    print("Stored Ideal Travel Times:", stored_ideal_times)
+    stored_ideal_times_treatment = ideal_time.get_ideal_travel_times()
+    print("Stored Ideal Travel Times for Treatment Areas:", stored_ideal_times_treatment)
+
+    return plot_data, ideal_time
+
+def calculate_and_print_ideal_travel_time(total_distance_rows, speed, label):
+    ideal_travel_time = total_distance_rows / speed
+    rounded_ideal_travel_time = round(ideal_travel_time / 3600, 3)
+    print(f"Ideal Travel Time for {label}:", rounded_ideal_travel_time, " Hours")
+
+def main():
+    # Load JSON data
+    file_name = 'appended.json'
+    json_data = load_json_data(file_name)
+
+    # Set speeds for ideal time calculation (in meters per second)
+    speed_treatment = 0.23
+    speed_non_treatment = 0.5
+
+    plot_data, ideal_time = process_and_plot_data(json_data, speed_treatment, speed_non_treatment)
+
+    # Access the total distance of rows for treatment areas
+    total_distance_rows_treatment = ideal_time.get_total_distance_rows()
+
+    # Calculate and print ideal travel time for treatment areas
+    calculate_and_print_ideal_travel_time(total_distance_rows_treatment, speed_treatment, "Treatment Areas")
+
+    # Calculate total distance of non-treatment areas
+    points = json_data['points']
+    total_distance_all_points = sum(ideal_time.calculate_distance(points[i], points[i + 1]) for i in range(len(points) - 1))
+
+    # Calculate and print ideal travel time for non-treatment areas
+    total_distance_non_treatment = total_distance_all_points - total_distance_rows_treatment
+    calculate_and_print_ideal_travel_time(total_distance_non_treatment, speed_non_treatment, "Non-Treatment Areas")
 
 if __name__ == "__main__":
     main()

@@ -252,6 +252,11 @@ def process_and_plot_data(json_data, speed_treatment, speed_non_treatment):
     print("Total Distance for Start Path:", total_distance_start_path, "meters")
     print("Total Distance for End Path:", total_distance_end_path, "meters")
 
+        # Calculate total distance of non-treatment areas
+    points = json_data['points']
+    total_distance_all_points = sum(ideal_time.calculate_distance(points[i], points[i + 1]) for i in range(len(points) - 1))
+    print("Total Distance of Map", total_distance_all_points, "meters")
+
     # Calculate, print, and store ideal travel times for treatment areas
     ideal_time.calculate_and_store_travel_times()
 
@@ -259,16 +264,11 @@ def process_and_plot_data(json_data, speed_treatment, speed_non_treatment):
     stored_ideal_times_treatment = ideal_time.get_ideal_travel_times()
     print("Stored Ideal Travel Times for Rows in Minutes:", stored_ideal_times_treatment)
 
-    
     # Access the total distance of rows for treatment areas
     total_distance_rows_treatment = ideal_time.get_total_distance_rows()
 
     # Calculate and print ideal travel time for treatment areas
     calculate_and_print_ideal_travel_time(total_distance_rows_treatment, speed_treatment, "Treatment Areas")
-
-    # Calculate total distance of non-treatment areas
-    points = json_data['points']
-    total_distance_all_points = sum(ideal_time.calculate_distance(points[i], points[i + 1]) for i in range(len(points) - 1))
 
     # Calculate and print ideal travel time for non-treatment areas
     total_distance_non_treatment = total_distance_all_points - total_distance_rows_treatment
@@ -288,7 +288,7 @@ def calculate_and_print_ideal_travel_time(total_distance, speed, label):
 # Main function
 def main():
     # Load JSON data
-    file_name = 'test_map_124.json'
+    file_name = 'test_map2_124.json'
     json_data = load_json_data(file_name)
 
     # Set speeds for ideal time calculation (in meters per second)

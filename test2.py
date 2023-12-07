@@ -6,8 +6,6 @@ from sensor_msgs.msg import NavSatFix
 import json
 import math
 
-radius = 2.0
-
 # Class to represent map data from JSON
 class JsonDataMap:
     def __init__(self, json_data):
@@ -21,20 +19,29 @@ class JsonDataMap:
         adjusted_y = point['head']['position']['y'] + self.datum['latitude']
         return {'x': adjusted_x, 'y': adjusted_y}
 
+def has_passed_point(gps_data, current_point, next_point, radius):
+    x_gps = gps_data.longitude
+    y_gps = gps_data.latitude
+
+    # Calculate distance between GPS coordinates and adjusted points
+    distance_to_current = math.sqrt((x_gps - current_point['x'])**2 + (y_gps - current_point['y'])**2)
+    distance_to_next = math.sqrt((x_gps - next_point['x'])**2 + (y_gps - next_point['y'])**2)
+
+    # Check if the robot has moved past the current point towards the next point
+    return distance_to_next < distance_to_current - radius
+
 def gps_callback(gps_data, json_data_map, radius, last_passed_point_index):
     # GPS coordinates
     x_gps = gps_data.longitude
     y_gps = gps_data.latitude
 
-    # Iterate through map points to find if GPS coordinates are close to any point
-    for i, point in enumerate(json_data_map.points):
-        adjusted_point = json_data_map.adjust_coordinates(point)
+    # Iterate through map points to find if GPS coordinates have passed any point
+    for i in range(len(json_data_map.points) - 1):
+        current_point = json_data_map.adjust_coordinates(json_data_map.points[i])
+        next_point = json_data_map.adjust_coordinates(json_data_map.points[i + 1])
 
-        # Calculate distance between GPS coordinates and adjusted point
-        distance = math.sqrt((x_gps - adjusted_point['x'])**2 + (y_gps - adjusted_point['y'])**2)
-
-        # Check if GPS coordinates are within the specified radius of the point
-        if distance < radius:
+        # Check if the robot has moved past the current point towards the next point
+        if has_passed_point(gps_data, current_point, next_point, radius):
             # Check if it's a different point from the last one passed
             if i != last_passed_point_index:
                 last_passed_point_index = i
@@ -42,7 +49,7 @@ def gps_callback(gps_data, json_data_map, radius, last_passed_point_index):
                 print("Point {} Passed".format(i))
                 # You may want to add additional logic or processing here
 
-            break  # Exit the loop once a matching point is found
+            break  # Exit the loop once a passing point is found
 
     return last_passed_point_index
 

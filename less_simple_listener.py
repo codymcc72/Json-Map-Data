@@ -79,3 +79,4 @@ if __name__ == '__main__':
 
     # Initialize GPS listener with the JsonDataMap instance
     gps_listener(json_data_map)
+

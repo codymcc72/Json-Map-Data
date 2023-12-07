@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import os
 import rospy
 from sensor_msgs.msg import NavSatFix
@@ -54,8 +56,8 @@ def gps_callback(gps_data, json_data, datum, passed_point):
 def gps_listener(json_data):
     rospy.init_node('gps_listener', anonymous=True)
 
-    # Extract datum information from JsonDataMap instance
-    datum = json_data.extract_datum()
+    # Extract datum information from JSON
+    datum = json_data.extract_datum(json_data)
 
     # Variable to track the point that has been passed
     passed_point = None
@@ -79,4 +81,3 @@ if __name__ == '__main__':
 
     # Initialize GPS listener with the JsonDataMap instance
     gps_listener(json_data_map)
-

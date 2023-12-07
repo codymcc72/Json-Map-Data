@@ -54,8 +54,8 @@ def gps_callback(gps_data, json_data, datum, passed_point):
 def gps_listener(json_data):
     rospy.init_node('gps_listener', anonymous=True)
 
-    # Extract datum information from JSON
-    datum = json_data.extract_datum(json_data)
+    # Extract datum information from JsonDataMap instance
+    datum = json_data.extract_datum()
 
     # Variable to track the point that has been passed
     passed_point = None

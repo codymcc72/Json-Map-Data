@@ -1,8 +1,8 @@
 Traceback (most recent call last):
-  File "/home/tric/codys_ws/src/package_1/src/test.py", line 81, in <module>
+  File "/home/tric/codys_ws/src/package_1/src/test.py", line 83, in <module>
     gps_listener(json_data_map)
-  File "/home/tric/codys_ws/src/package_1/src/test.py", line 58, in gps_listener
+  File "/home/tric/codys_ws/src/package_1/src/test.py", line 60, in gps_listener
     datum = json_data.extract_datum(json_data)
-  File "/home/tric/codys_ws/src/package_1/src/test.py", line 16, in extract_datum
+  File "/home/tric/codys_ws/src/package_1/src/test.py", line 18, in extract_datum
     x = json_data['datum']['longitude']
 TypeError: 'JsonDataMap' object is not subscriptable

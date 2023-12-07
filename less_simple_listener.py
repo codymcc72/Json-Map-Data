@@ -6,10 +6,10 @@ import math
 
 # Class to represent map data from JSON
 class JsonDataMap:
-    def __init__(self, json_data):
+    def __init__(self):
         # Initialize attributes to store map segments
-        self.datum = self.extract_datum(json_data)
-        self.points = json_data['points']
+        self.datum = None
+        self.points = None
 
     # Extract datum (home) coordinates from JSON
     def extract_datum(self, json_data):
@@ -23,7 +23,7 @@ class JsonDataMap:
         adjusted_y = point['head']['position']['y'] + self.datum['y']
         return {'x': adjusted_x, 'y': adjusted_y}
 
-def gps_callback(gps_data, json_data_map, passed_point):
+def gps_callback(gps_data, json_data, datum, passed_point):
     # Iterate through map points to find the closest one
     x_gps = gps_data.longitude
     y_gps = gps_data.latitude
@@ -31,8 +31,8 @@ def gps_callback(gps_data, json_data_map, passed_point):
     closest_point = None
     min_distance = float('inf')
 
-    for point in json_data_map.points:
-        adjusted_point = json_data_map.adjust_coordinates(point)
+    for point in json_data.points:
+        adjusted_point = json_data.adjust_coordinates(point)
         distance = math.sqrt((x_gps - adjusted_point['x'])**2 + (y_gps - adjusted_point['y'])**2)
 
         if distance < min_distance:
@@ -51,26 +51,31 @@ def gps_callback(gps_data, json_data_map, passed_point):
 
     return passed_point
 
-def gps_listener(json_data_map):
+def gps_listener(json_data):
     rospy.init_node('gps_listener', anonymous=True)
+
+    # Extract datum information from JSON
+    datum = json_data.extract_datum(json_data)
 
     # Variable to track the point that has been passed
     passed_point = None
 
-    rospy.Subscriber('tric_navigation/gps/head_data', NavSatFix, lambda gps_data: gps_callback(gps_data, json_data_map, passed_point))
+    rospy.Subscriber('tric_navigation/gps/head_data', NavSatFix, lambda gps_data: gps_callback(gps_data, json_data, datum, passed_point))
     rospy.spin()
 
 if __name__ == '__main__':
     # Get the path to the JSON map file (assuming it's in the 'json_maps_folder' within the 'src' directory)
     script_dir = os.path.dirname(os.path.realpath(__file__))
-    map_file_path = os.path.join(script_dir, '..', 'json_maps_folder', 'your_map_data.json')
+    map_file_path = os.path.join(script_dir, 'json_map_plot', 'testrow.json')
 
     # Load JSON data
     with open(map_file_path, 'r') as file:
         json_data = json.load(file)
 
     # Initialize JsonDataMap with the loaded JSON data
-    json_data_map = JsonDataMap(json_data)
+    json_data_map = JsonDataMap()
+    json_data_map.datum = json_data_map.extract_datum(json_data)
+    json_data_map.points = json_data['points']
 
     # Initialize GPS listener with the JsonDataMap instance
     gps_listener(json_data_map)

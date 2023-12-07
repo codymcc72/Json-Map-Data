@@ -4,11 +4,14 @@ import rospy
 from sensor_msgs.msg import NavSatFix
 import json
 import os
+from geometry_msgs.msg import PoseStamped
+from nav_msgs.msg import Path
 
 class DataProcessor:
     def __init__(self, json_data):
-        self.gps_data = {'x': [], 'y': []}
+        self.gps_data = {'x': [], 'y': [], 'timestamp': []}
         self.json_points = {'x': [], 'y': []}
+        self.last_processed_index = -1
 
         # Extract datum information from JSON
         self.datum = json_data['datum']
@@ -27,10 +30,12 @@ class DataProcessor:
     def gps_callback(self, gps_data):
         x_gps = gps_data.longitude
         y_gps = gps_data.latitude
+        timestamp = gps_data.header.stamp
 
         # Store GPS data
         self.gps_data['x'].append(x_gps)
         self.gps_data['y'].append(y_gps)
+        self.gps_data['timestamp'].append(timestamp)
 
         # Check and print points that match
         self.check_and_print_matching_points()
@@ -40,18 +45,23 @@ class DataProcessor:
         return distance < radius
 
     def check_and_print_matching_points(self):
+        # Check if there is new GPS data
+        if len(self.gps_data['x']) <= self.last_processed_index + 1:
+            return
+
         # Get the latest GPS data
         latest_gps_point = {'x': self.gps_data['x'][-1], 'y': self.gps_data['y'][-1]}
 
         # Check and print points that match
         for idx, json_point in enumerate(zip(self.json_points['x'], self.json_points['y'])):
             if self.has_passed_point(latest_gps_point, {'x': json_point[0], 'y': json_point[1]}):
-                print(f"Match Found - Point {idx}")
+                # Check if the point has not been processed recently
+                if idx > self.last_processed_index:
+                    self.last_processed_index = idx
+                    timestamp = self.gps_data['timestamp'][-1]
+                    print(f"Match Found - Point {idx} at Timestamp {timestamp}")
 
-def gps_listener(data_processor):
-    rospy.init_node('gps_listener', anonymous=True)
-    rospy.Subscriber('tric_navigation/gps/head_data', NavSatFix, data_processor.gps_callback)
-    rospy.spin()
+                    # You may want to add additional logic or processing here
 
 if __name__ == '__main__':
     # Get the path to the JSON map file
@@ -65,5 +75,10 @@ if __name__ == '__main__':
     # Initialize DataProcessor with the loaded JSON data
     data_processor = DataProcessor(json_data)
 
+    # Initialize ROS node
+    rospy.init_node('gps_listener', anonymous=True)
+
     # Initialize GPS listener with the DataProcessor instance
-    gps_listener(data_processor)
+    rospy.Subscriber('tric_navigation/gps/head_data', NavSatFix, data_processor.gps_callback)
+    rospy.spin()
+

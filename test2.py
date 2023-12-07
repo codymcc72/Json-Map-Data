@@ -23,12 +23,23 @@ def has_passed_point(gps_data, current_point, next_point, radius):
     x_gps = gps_data.longitude
     y_gps = gps_data.latitude
 
-    # Calculate distance between GPS coordinates and adjusted points
-    distance_to_current = math.sqrt((x_gps - current_point['x'])**2 + (y_gps - current_point['y'])**2)
-    distance_to_next = math.sqrt((x_gps - next_point['x'])**2 + (y_gps - next_point['y'])**2)
+    # Calculate the vector from the current point to the GPS coordinates
+    vector_to_gps = {'x': x_gps - current_point['x'], 'y': y_gps - current_point['y']}
 
-    # Check if the robot has moved past the current point towards the next point
-    return distance_to_next < distance_to_current - radius
+    # Calculate the vector along the path from the current point to the next point
+    path_vector = {'x': next_point['x'] - current_point['x'], 'y': next_point['y'] - current_point['y']}
+
+    # Calculate the dot product of the two vectors
+    dot_product = vector_to_gps['x'] * path_vector['x'] + vector_to_gps['y'] * path_vector['y']
+
+    # Calculate the magnitude of the path vector
+    path_magnitude = math.sqrt(path_vector['x']**2 + path_vector['y']**2)
+
+    # Calculate the projection of the vector to GPS coordinates onto the path vector
+    projection = dot_product / path_magnitude
+
+    # Check if the projection is within the bounds of the path
+    return 0 <= projection <= path_magnitude and math.sqrt(vector_to_gps['x']**2 + vector_to_gps['y']**2) < radius
 
 def gps_callback(gps_data, json_data_map, radius, last_passed_point_index):
     # GPS coordinates

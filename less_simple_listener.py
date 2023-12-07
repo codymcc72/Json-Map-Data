@@ -14,9 +14,9 @@ class JsonDataMap:
         self.points = None
 
     # Extract datum (home) coordinates from JSON
-    def extract_datum(self, json_data):
-        x = json_data['datum']['longitude']
-        y = json_data['datum']['latitude']
+    def extract_datum(self):
+        x = self.datum['longitude']
+        y = self.datum['latitude']
         return {'x': x, 'y': y}
 
     # Adjust coordinates using the datum information
@@ -57,7 +57,7 @@ def gps_listener(json_data):
     rospy.init_node('gps_listener', anonymous=True)
 
     # Extract datum information from JSON
-    datum = json_data.extract_datum(json_data)
+    datum = json_data.extract_datum()
 
     # Variable to track the point that has been passed
     passed_point = None

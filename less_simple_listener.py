@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-
+import os
 import rospy
 from sensor_msgs.msg import NavSatFix
 import json
@@ -65,9 +64,12 @@ def gps_listener(json_data):
     rospy.spin()
 
 if __name__ == '__main__':
+    # Get the path to the JSON map file (assuming it's in the 'json_maps_folder' within the 'src' directory)
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+    map_file_path = os.path.join(script_dir, '..', 'json_maps_folder', 'your_map_data.json')
+
     # Load JSON data
-    file_name = 'your_map_data.json'  # Replace with your actual file name
-    with open(file_name, 'r') as file:
+    with open(map_file_path, 'r') as file:
         json_data = json.load(file)
 
     # Initialize JsonDataMap with the loaded JSON data

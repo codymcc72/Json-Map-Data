@@ -19,50 +19,41 @@ class JsonDataMap:
         adjusted_y = point['head']['position']['y'] + self.datum['latitude']
         return {'x': adjusted_x, 'y': adjusted_y}
 
-def has_passed_point(gps_data, current_point, next_point, radius):
+def has_passed_point(gps_data, current_point, radius):
     x_gps = gps_data.longitude
     y_gps = gps_data.latitude
 
-    # Calculate the vector from the current point to the GPS coordinates
-    vector_to_gps = {'x': x_gps - current_point['x'], 'y': y_gps - current_point['y']}
+    # Calculate the distance between the GPS coordinates and the current point
+    distance = math.sqrt((x_gps - current_point['x'])**2 + (y_gps - current_point['y'])**2)
 
-    # Calculate the vector along the path from the current point to the next point
-    path_vector = {'x': next_point['x'] - current_point['x'], 'y': next_point['y'] - current_point['y']}
+    # Check if the distance is within the radius
+    return distance < radius
 
-    # Calculate the dot product of the two vectors
-    dot_product = vector_to_gps['x'] * path_vector['x'] + vector_to_gps['y'] * path_vector['y']
 
-    # Calculate the magnitude of the path vector
-    path_magnitude = math.sqrt(path_vector['x']**2 + path_vector['y']**2)
-
-    # Calculate the projection of the vector to GPS coordinates onto the path vector
-    projection = dot_product / path_magnitude
-
-    # Check if the projection is within the bounds of the path
-    return 0 <= projection <= path_magnitude and math.sqrt(vector_to_gps['x']**2 + vector_to_gps['y']**2) < radius
-
-def gps_callback(gps_data, json_data_map, radius, last_passed_point_index):
+def gps_callback(gps_data, json_data_map, radius, passed_point):
     # GPS coordinates
     x_gps = gps_data.longitude
     y_gps = gps_data.latitude
 
-    # Iterate through map points to find if GPS coordinates have passed any point
-    for i in range(len(json_data_map.points) - 1):
-        current_point = json_data_map.adjust_coordinates(json_data_map.points[i])
-        next_point = json_data_map.adjust_coordinates(json_data_map.points[i + 1])
+    # Iterate through map points to find if GPS coordinates are close to any point
+    for point in json_data_map.points:
+        adjusted_point = json_data_map.adjust_coordinates(point)
 
-        # Check if the robot has moved past the current point towards the next point
-        if has_passed_point(gps_data, current_point, next_point, radius):
-            # Check if it's a different point from the last one passed
-            if i != last_passed_point_index:
-                last_passed_point_index = i
+        # Check if GPS coordinates are within the specified radius of the point
+        if has_passed_point(gps_data, adjusted_point, radius):
+            # Check if the point has not been passed recently
+            if passed_point is None or adjusted_point != passed_point['point']:
+                passed_point = {'point': adjusted_point}
+                timestamp = gps_data.header.stamp
 
-                print("Point {} Passed".format(i))
+                print("Point {} Passed".format(point['point_number']))
+                print("Timestamp: {}".format(timestamp))
+                print("\n")
+
                 # You may want to add additional logic or processing here
 
-            break  # Exit the loop once a passing point is found
+    return passed_point
 
-    return last_passed_point_index
 
 def gps_listener(json_data_map):
     rospy.init_node('gps_listener', anonymous=True)

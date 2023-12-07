@@ -28,7 +28,7 @@ def gps_callback(gps_data, json_data_map, radius, passed_point):
     # Iterate through map points to find if GPS coordinates are close to any point
     for point in json_data_map.points:
         adjusted_point = json_data_map.adjust_coordinates(point)
-        
+
         # Calculate distance between GPS coordinates and adjusted point
         distance = math.sqrt((x_gps - adjusted_point['x'])**2 + (y_gps - adjusted_point['y'])**2)
 
@@ -36,17 +36,19 @@ def gps_callback(gps_data, json_data_map, radius, passed_point):
         if distance < radius:
             # Check if the point has not been passed recently
             if passed_point is None or adjusted_point != passed_point['point']:
-                passed_point = {'point': adjusted_point, 'distance': distance}
-                timestamp = gps_data.header.stamp
+                passed_point = {'point': adjusted_point, 'distance': distance, 'timestamp': gps_data.header.stamp}
 
                 print("Adjusted X: {:.6f}".format(adjusted_point['x']))
                 print("Adjusted Y: {:.6f}".format(adjusted_point['y']))
-                print("Timestamp: {}".format(timestamp))
+                print("Timestamp: {}".format(passed_point['timestamp']))
                 print("\n")
 
                 # You may want to add additional logic or processing here
 
             break  # Exit the loop once a matching point is found
+
+    return passed_point
+
 
 
     return passed_point

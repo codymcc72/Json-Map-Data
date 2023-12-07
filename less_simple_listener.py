@@ -6,6 +6,7 @@ from sensor_msgs.msg import NavSatFix
 import json
 import math
 
+radius = 2.0
 # Class to represent map data from JSON
 class JsonDataMap:
     def __init__(self, json_data):
@@ -56,7 +57,7 @@ def gps_listener(json_data_map):
     # Variable to track the point that has been passed
     passed_point = None
 
-    rospy.Subscriber('tric_navigation/gps/head_data', NavSatFix, lambda gps_data: gps_callback(gps_data, json_data_map, passed_point))
+    rospy.Subscriber('tric_navigation/gps/head_data', NavSatFix, lambda gps_data: gps_callback(gps_data, json_data_map, radius, passed_point))
     rospy.spin()
 
 if __name__ == '__main__':
@@ -73,4 +74,3 @@ if __name__ == '__main__':
 
     # Initialize GPS listener with the JsonDataMap instance
     gps_listener(json_data_map)
-
